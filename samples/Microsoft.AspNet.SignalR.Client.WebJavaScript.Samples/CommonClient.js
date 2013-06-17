@@ -30,7 +30,7 @@
         log("[stateChanged] " + displayState(change.oldState) + " => " + displayState(change.newState));
     });
 
-    $.connection.hub.start({ transport: "longPolling" }).
+    $.connection.hub.start().
         done(function () {
             log("Connected");
             log("transport.name=" + $.connection.hub.transport.name);
