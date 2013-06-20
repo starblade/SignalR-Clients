@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNet.SignalR.Client.Hubs;
 
@@ -14,23 +15,34 @@ namespace Microsoft.AspNet.SignalR.Client.Samples
             _traceWriter = traceWriter;
         }
 
-        public async Task RunAsync()
+        public async Task RunAsync(string url)
         {
-            await RunHubConnectionAPI();
+            try
+            {
+                await RunHubConnectionAPI(url);
+            }
+#if SIGNALR_2_0_0
+            catch (HttpClientException httpClientException)
+            {
+                _traceWriter.WriteLine("HttpClientException: {0}", httpClientException.Response);
+                throw;
+            }
+#endif
+            catch (Exception exception)
+            {
+                _traceWriter.WriteLine("Exception: {0}", exception);
+                throw;
+            }
         }
 
-        private async Task RunHubConnectionAPI()
+        private async Task RunHubConnectionAPI(string url)
         {
-            // Url can't be localhost because Windows Phone emulator runs in a separate virtual machine. Therefore, server is located
-            // in another machine
-            string url = "http://signalr01.cloudapp.net/";
-
             var hubConnection = new HubConnection(url);
             hubConnection.TraceWriter = _traceWriter;
 
             var hubProxy = hubConnection.CreateHubProxy("HubConnectionAPI");
             hubProxy.On<string>("displayMessage", (data) => hubConnection.TraceWriter.WriteLine(data));
-
+            
             await hubConnection.Start();
             hubConnection.TraceWriter.WriteLine("transport.Name={0}", hubConnection.Transport.Name);
 
@@ -40,11 +52,36 @@ namespace Microsoft.AspNet.SignalR.Client.Samples
             hubConnection.TraceWriter.WriteLine("joinGroupResponse={0}", joinGroupResponse);
             
             await hubProxy.Invoke("DisplayMessageGroup", "CommonClientGroup", "Hello Group Members!");
+
+            string leaveGroupResponse = await hubProxy.Invoke<string>("LeaveGroup", hubConnection.ConnectionId, "CommonClientGroup");
+            hubConnection.TraceWriter.WriteLine("leaveGroupResponse={0}", joinGroupResponse);
+
+            await hubProxy.Invoke("DisplayMessageGroup", "CommonClientGroup", "Hello Group Members! (caller should not see this message)");
+
+            await hubProxy.Invoke("DisplayMessageCaller", "Hello Caller again!");
         }
 
-        private async Task RunRawConnection()
+        private async Task RunDemo(string url)
         {
-            string url = "http://signalr01.cloudapp.net/raw-connection";
+            var hubConnection = new HubConnection(url);
+            hubConnection.TraceWriter = _traceWriter;
+
+            var hubProxy = hubConnection.CreateHubProxy("demo");
+            hubProxy.On<int>("invoke", (i) => 
+            {
+                int n = hubProxy.GetValue<int>("index");
+                hubConnection.TraceWriter.WriteLine("{0} client state index -> {1}", i, n);
+            });
+
+            await hubConnection.Start();
+            hubConnection.TraceWriter.WriteLine("transport.Name={0}", hubConnection.Transport.Name);
+
+            await hubProxy.Invoke("multipleCalls");
+        }
+
+        private async Task RunRawConnection(string serverUrl)
+        {
+            string url = serverUrl + "raw-connection";
 
             var connection = new Connection(url);
             connection.TraceWriter = _traceWriter;
@@ -57,9 +94,9 @@ namespace Microsoft.AspNet.SignalR.Client.Samples
         }
 
 
-        private async Task RunStreaming()
+        private async Task RunStreaming(string serverUrl)
         {
-            string url = "http://signalr01.cloudapp.net/streaming-connection";
+            string url = serverUrl + "streaming-connection";
 
             var connection = new Connection(url);
             connection.TraceWriter = _traceWriter;
@@ -67,6 +104,52 @@ namespace Microsoft.AspNet.SignalR.Client.Samples
             await connection.Start();
             connection.TraceWriter.WriteLine("transport.Name={0}", connection.Transport.Name);
         }
+
+        private async Task RunBasicAuth(string url)
+        {
+            var hubConnection = new HubConnection(url);
+            hubConnection.TraceWriter = _traceWriter;
+            hubConnection.Credentials = new NetworkCredential("username", "password");
+
+            var hubProxy = hubConnection.CreateHubProxy("AuthHub");
+            hubProxy.On<string, string>("invoked", (connectionId, date) => hubConnection.TraceWriter.WriteLine("connectionId={0}, date={1}", connectionId, date));
+
+            await hubConnection.Start();            
+            hubConnection.TraceWriter.WriteLine("transport.Name={0}", hubConnection.Transport.Name);
+
+            await hubProxy.Invoke("InvokedFromClient");
+        }
+
+        private async Task RunWindowsAuth(string url)
+        {
+            var hubConnection = new HubConnection(url);
+            hubConnection.TraceWriter = _traceWriter;
+
+            // Windows Auth is not supported on SL and WindowsStore apps
+#if !SILVERLIGHT && !NETFX_CORE
+            hubConnection.Credentials = CredentialCache.DefaultCredentials;
+#endif
+            var hubProxy = hubConnection.CreateHubProxy("AuthHub");
+            hubProxy.On<string, string>("invoked", (connectionId, date) => hubConnection.TraceWriter.WriteLine("connectionId={0}, date={1}", connectionId, date));
+
+            await hubConnection.Start();
+            hubConnection.TraceWriter.WriteLine("transport.Name={0}", hubConnection.Transport.Name);
+
+            await hubProxy.Invoke("InvokedFromClient");
+        }
+
+        private async Task RunHeaderAuthHub(string url)
+        {
+            var hubConnection = new HubConnection(url);
+            hubConnection.TraceWriter = _traceWriter;
+            hubConnection.Headers.Add("username", "john");
+
+            var hubProxy = hubConnection.CreateHubProxy("HeaderAuthHub");
+            hubProxy.On<string>("display", (msg) => hubConnection.TraceWriter.WriteLine(msg));
+
+            await hubConnection.Start();
+            hubConnection.TraceWriter.WriteLine("transport.Name={0}", hubConnection.Transport.Name);
+        }   
     }    
 }
 
