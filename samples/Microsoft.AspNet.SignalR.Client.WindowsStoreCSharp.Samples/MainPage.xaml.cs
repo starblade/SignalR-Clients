@@ -26,7 +26,7 @@ namespace Microsoft.AspNet.SignalR.Client.WindowsStoreCSharp.Samples
         {
             var writer = new TextBoxWriter(SynchronizationContext.Current, this.Messages);
             var client = new CommonClient(writer);
-            client.RunAsync("http://signalr01.cloudapp.net/");
+            client.RunAsync("http://signalr-test1.cloudapp.net:81/");
         }
     }
 }

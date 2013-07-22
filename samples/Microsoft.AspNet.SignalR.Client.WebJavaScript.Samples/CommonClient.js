@@ -3,7 +3,7 @@
         log(data);
     }
 
-    $.connection.hub.url = "http://signalr01.cloudapp.net/signalr";
+    $.connection.hub.url = "http://signalr-test1.cloudapp.net:81/signalr";
     $.connection.hub.logging = true;
     $.connection.hub.connectionSlow(function () {
         log("[connectionSlow]");

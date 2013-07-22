@@ -12,7 +12,7 @@ namespace Microsoft.AspNet.SignalR.Client.Net40.Samples
         {
             var writer = Console.Out;
             var client = new CommonClient(writer);
-            client.Run();
+            client.Run("http://signalr-test1.cloudapp.net:81/");
 
             Console.ReadLine();
         }

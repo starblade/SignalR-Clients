@@ -14,17 +14,13 @@ namespace Microsoft.AspNet.SignalR.Client.Samples
             _traceWriter = traceWriter;
         }
 
-        public void Run()
+        public void Run(string url)
         {
-            RunHubConnectionAPI();
+            RunHubConnectionAPI(url);
         }
 
-        private void RunHubConnectionAPI()
+        private void RunHubConnectionAPI(string url)
         {
-            // Url can't be localhost because Windows Phone emulator runs in a separate virtual machine. Therefore, server is located
-            // in another machine
-            string url = "http://signalr01.cloudapp.net/";
-
             var hubConnection = new HubConnection(url);
             hubConnection.TraceWriter = _traceWriter;
 
@@ -42,9 +38,9 @@ namespace Microsoft.AspNet.SignalR.Client.Samples
             hubProxy.Invoke("DisplayMessageGroup", "CommonClientGroup", "Hello Group Members!").Wait();
         }
 
-        private void RunRawConnection()
+        private void RunRawConnection(string serverUrl)
         {
-            string url = "http://signalr01.cloudapp.net/raw-connection";
+            string url = serverUrl + "raw-connection";
 
             var connection = new Connection(url);
             connection.TraceWriter = _traceWriter;
@@ -57,9 +53,9 @@ namespace Microsoft.AspNet.SignalR.Client.Samples
         }
 
 
-        private void RunStreaming()
+        private void RunStreaming(string serverUrl)
         {
-            string url = "http://signalr01.cloudapp.net/streaming-connection";
+            string url = serverUrl + "streaming-connection";
 
             var connection = new Connection(url);
             connection.TraceWriter = _traceWriter;
